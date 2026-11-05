@@ -1,8 +1,42 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
+from db import get_connection
+from psycopg2.extras import RealDictCursor
 
 app = FastAPI()
 
 
+class InvitadoIn(BaseModel):
+    nombre : str 
+    puesto  : str | None = None
+    telefono : str
+    correo : str | None = None
+    es_patrocinador : bool = False
+    evento_fk : int
+
 @app.get("/health")
 async def salud():
     return {"status": "ok"}
+
+
+@app.post("/invitados")
+def agregar_invitado(data: InvitadoIn):
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        valores = (data.nombre, data.puesto, data.telefono, data.correo, data.es_patrocinador, data.evento_fk)
+        cursor.execute(""" 
+                    INSERT INTO invitados (nombre, puesto, telefono, correo, 
+                    es_patrocinador, evento_fk) VALUES (%s, %s, %s, %s, %s, %s)
+                    RETURNING id 
+                    ;""", (valores)) 
+        fila = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        
+        return fila
+    
+    finally:
+        if conn:
+            conn.close()
