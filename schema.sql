@@ -2,7 +2,7 @@ CREATE TABLE eventos (
     id SERIAL PRIMARY KEY,
     nombre_evento TEXT NOT NULL,
     ubicacion_evento TEXT, 
-    fecha_hora TIMESTAMP NOT NULL
+    fecha_hora TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE invitados (
@@ -12,6 +12,6 @@ CREATE TABLE invitados (
     telefono TEXT NOT NULL,
     correo TEXT,
     es_patrocinador BOOLEAN NOT NULL DEFAULT FALSE,
-    ingreso TIMESTAMP,
+    ingreso TIMESTAMPTZ,
     evento_fk INTEGER NOT NULL REFERENCES eventos(id)
 );
