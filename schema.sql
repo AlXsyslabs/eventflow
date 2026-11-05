@@ -11,7 +11,7 @@ CREATE TABLE invitados (
     puesto TEXT,
     telefono TEXT NOT NULL,
     correo TEXT,
-    patrocinador TEXT,
+    es_patrocinador BOOLEAN NOT NULL DEFAULT FALSE,
     ingreso TIMESTAMP,
     evento_fk INTEGER NOT NULL REFERENCES eventos(id)
 );
