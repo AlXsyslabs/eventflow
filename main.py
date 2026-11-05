@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from db import get_connection
 from psycopg2.extras import RealDictCursor
@@ -56,6 +56,31 @@ def listar_invitados(evento_id: int):
         lista = cursor.fetchall()
         
         return lista
+    
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.patch("/invitados/{invitado_id}/ingreso")
+def actualizar_ingreso_invitado(invitado_id:int):
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+                        UPDATE invitados
+                        SET ingreso = NOW()
+                        WHERE id = %s AND ingreso IS NULL
+                        RETURNING id
+                        """, (invitado_id,))
+        conn.commit()
+        fila = cursor.fetchone()
+        cursor.close()
+        if fila is None:
+            raise HTTPException(status_code=409, detail="Ya ingresó o no se registró")
+        
+        return fila
     
     finally:
         if conn:
