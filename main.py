@@ -40,3 +40,23 @@ def agregar_invitado(data: InvitadoIn):
     finally:
         if conn:
             conn.close()
+
+
+@app.get("/invitados")
+def listar_invitados(evento_id: int):
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+                        SELECT id, nombre, puesto, telefono, correo, 
+                        es_patrocinador, ingreso, evento_fk FROM invitados 
+                        WHERE evento_fk = %s ORDER BY id
+                        """, (evento_id, ))
+        lista = cursor.fetchall()
+        
+        return lista
+    
+    finally:
+        if conn:
+            conn.close()
