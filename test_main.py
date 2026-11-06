@@ -64,3 +64,19 @@ def test_agregar_invitado_ok(evento_prueba):
 
     assert respuesta.status_code == 200
     assert "id" in respuesta.json()
+
+
+def test_ingreso_solo_una_vez(evento_prueba):
+    creado = client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":evento_prueba})
+
+    assert creado.status_code == 200
+    assert "id" in creado.json()
+    invitado_id = creado.json()['id']
+
+    primera = client.patch(f"/invitados/{invitado_id}/ingreso")
+    assert primera.status_code == 200
+    assert primera.json()['id'] == invitado_id
+
+    segunda = client.patch(f"/invitados/{invitado_id}/ingreso")
+    assert segunda.status_code == 409
+    assert segunda.json()["detail"] == "Ya ingresó o no se registró"
