@@ -80,3 +80,9 @@ def test_ingreso_solo_una_vez(evento_prueba):
     segunda = client.patch(f"/invitados/{invitado_id}/ingreso")
     assert segunda.status_code == 409
     assert segunda.json()["detail"] == "Ya ingresó o no se registró"
+
+def test_agregar_invitado_nombre_validacion():
+    respuesta = client.post("/invitados", json={"nombre":"   ", "telefono":"6675645454", "evento_fk":2})
+    assert respuesta.status_code == 422
+    assert respuesta.json()['detail'][0]['loc'] == ["body", "nombre"]
+    assert respuesta.json()['detail'][0]['type'] == "string_too_short"
