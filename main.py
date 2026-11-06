@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from typing import Annotated
+from pydantic import BaseModel, StringConstraints
 from db import get_connection
 from psycopg2.extras import RealDictCursor
 
@@ -7,7 +8,7 @@ app = FastAPI()
 
 
 class InvitadoIn(BaseModel):
-    nombre : str 
+    nombre: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
     puesto  : str | None = None
     telefono : str
     correo : str | None = None
