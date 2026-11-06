@@ -86,3 +86,15 @@ def test_agregar_invitado_nombre_validacion():
     assert respuesta.status_code == 422
     assert respuesta.json()['detail'][0]['loc'] == ["body", "nombre"]
     assert respuesta.json()['detail'][0]['type'] == "string_too_short"
+
+def test_evento_sin_invitados_devuelve_lista_vacia(evento_prueba):
+    respuesta = client.get(f"/invitados?evento_id={evento_prueba}")
+
+    assert respuesta.status_code == 200
+    assert respuesta.json() == []
+
+def test_evento_inexistente_error():
+    respuesta = client.get("/invitados?evento_id=999999999")
+
+    assert respuesta.status_code == 404
+    assert respuesta.json()['detail'] == "El evento no existe"

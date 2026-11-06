@@ -50,6 +50,14 @@ def listar_invitados(evento_id: int):
         conn = get_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("""
+                        SELECT id FROM eventos
+                        WHERE id = %s
+                        """, (evento_id, ))
+        fila = cursor.fetchone()   
+        if fila is None:
+            raise HTTPException(status_code=404, detail="El evento no existe")    
+        
+        cursor.execute("""
                         SELECT id, nombre, puesto, telefono, correo, 
                         es_patrocinador, ingreso, evento_fk FROM invitados 
                         WHERE evento_fk = %s ORDER BY id
@@ -86,3 +94,4 @@ def actualizar_ingreso_invitado(invitado_id:int):
     finally:
         if conn:
             conn.close()
+
