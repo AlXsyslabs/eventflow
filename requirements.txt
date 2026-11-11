@@ -12,6 +12,7 @@ idna==3.20
 iniconfig==2.3.1
 opentelemetry-api==1.45.2
 packaging==26.3
+pillow==13.0.0
 pluggy==1.7.0
 psycopg2-binary==2.9.13
 pydantic==2.14.2
@@ -19,6 +20,7 @@ pydantic_core==2.50.2
 Pygments==2.21.0
 pytest==9.2.0
 python-dotenv==1.2.4
+qrcode==8.2
 starlette==1.10.0
 typing-inspection==0.4.5
 typing_extensions==4.16.0

@@ -106,3 +106,12 @@ def test_listar_invitados_con_un_invitado(evento_prueba):
     assert lista_invitado_evento.status_code == 200
     assert len(lista_invitado_evento.json()) == 1
     assert lista_invitado_evento.json()[0]['nombre'] == "gina"
+
+def test_verificar_qr(evento_prueba):
+    respuesta = client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":evento_prueba})
+    invitado_id = respuesta.json()['id']
+    qr = client.get(f"/invitados/{invitado_id}/qr")
+
+    assert qr.status_code == 200
+    assert qr.content.startswith(b"\x89PNG\r\n\x1a\n")
+    assert qr.headers["content-type"] == "image/png"

@@ -1,9 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from typing import Annotated
 from pydantic import BaseModel, StringConstraints
 from db import get_connection
 from psycopg2.extras import RealDictCursor
-
+import io
+import qrcode
 app = FastAPI()
 
 
@@ -95,3 +96,27 @@ def actualizar_ingreso_invitado(invitado_id:int):
         if conn:
             conn.close()
 
+
+@app.get("/invitados/{invitado_id}/qr")
+def invitado_qr(invitado_id:int):
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+                        SELECT id FROM invitados
+                        WHERE id = %s
+                        """, (invitado_id,))
+        fila = cursor.fetchone()
+        if fila is None:
+            raise HTTPException(status_code=404, detail="El invitado no existe")
+        
+        image = qrcode.make(str(invitado_id))#crea un qr con el id del invitado
+        buffer = io.BytesIO()
+        image.save(buffer, format="PNG")
+
+        return Response(content=buffer.getvalue(), media_type="image/png")
+    
+    finally:
+        if conn:
+            conn.close()
