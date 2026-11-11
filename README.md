@@ -1,11 +1,16 @@
 # EventFlow
 
-- Current: An endpoint (/health) that returns a JSON {"status":"ok"}
+- Current: An endpoint "/health" that returns a JSON {"status":"ok"}.
 
-- Planned: It registers the guests. 
+- Current: An endpoint POST "/invitados" for adding guests.
 
-- Planned: It generates a QR code for each guest & validates if the guest has already entered, in order to avoid duplicated
- entries with the same QR code.
+- Current: An endpoint GET "/invitados?evento_id=", with 404 error for nonexistent events.
+
+- Current: An endpoint PATCH "/invitados/{id}/ingreso", validates the guest entries once & returns a 409 error when a guest is already in the event.
+
+- Current: Automated tests with pytest cover the main cases of the endpoints.
+
+- Planned: It generates a QR code for each guest.
 
 - Planned: It will import guest lists using AI & will also send the invite through WhatsApp. 
 
