@@ -98,3 +98,11 @@ def test_evento_inexistente_error():
 
     assert respuesta.status_code == 404
     assert respuesta.json()['detail'] == "El evento no existe"
+
+def test_listar_invitados_con_un_invitado(evento_prueba):
+    client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":evento_prueba})
+    lista_invitado_evento = client.get(f"/invitados?evento_id={evento_prueba}")
+
+    assert lista_invitado_evento.status_code == 200
+    assert len(lista_invitado_evento.json()) == 1
+    assert lista_invitado_evento.json()[0]['nombre'] == "gina"
