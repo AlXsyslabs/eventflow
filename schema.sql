@@ -1,8 +1,16 @@
+CREATE TABLE perfiles(
+    id SERIAL PRIMARY KEY,
+    usuario TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    fecha_registro TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE eventos (
     id SERIAL PRIMARY KEY,
     nombre_evento TEXT NOT NULL,
     ubicacion_evento TEXT, 
-    fecha_hora TIMESTAMPTZ NOT NULL
+    fecha_hora TIMESTAMPTZ NOT NULL ,
+    perfil_id INTEGER NOT NULL REFERENCES perfiles(id)
 );
 
 CREATE TABLE invitados (

@@ -26,12 +26,20 @@ def evento_prueba():
     try:    
         conn = get_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        valores = ("Nombre_falso", "ubicacion_falsa")
+        valores_perfil = ("perfil_falso", "hash_falso")
         cursor.execute("""
-                        INSERT INTO eventos (nombre_evento, ubicacion_evento, fecha_hora)
-                        VALUES(%s, %s, NOW())
+                        INSERT INTO perfiles (usuario, password_hash)
+                        VALUES(%s, %s)
+                        RETURNING id
+                        """, (valores_perfil)) 
+        perfil_id = cursor.fetchone()['id']
+
+        valores_evento = ("Nombre_falso", "ubicacion_falsa", perfil_id)
+        cursor.execute("""
+                        INSERT INTO eventos (nombre_evento, ubicacion_evento, fecha_hora, perfil_id)
+                        VALUES(%s, %s, NOW(), %s)
                         RETURNING id 
-                        """, (valores))
+                        """, (valores_evento))
         evento_id = cursor.fetchone()['id']
         conn.commit()
     
@@ -49,8 +57,10 @@ def evento_prueba():
                         DELETE FROM invitados
                         WHERE evento_fk = %s;
                         DELETE FROM eventos
-                        WHERE id = %s
-                        """, (evento_id, evento_id))
+                        WHERE id = %s;
+                        DELETE FROM perfiles
+                        WHERE id = %s;
+                        """, (evento_id, evento_id, perfil_id))
         conn.commit()
         cursor.close()
 
