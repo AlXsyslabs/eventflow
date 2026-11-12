@@ -3,8 +3,11 @@ from typing import Annotated
 from pydantic import BaseModel, StringConstraints
 from db import get_connection
 from psycopg2.extras import RealDictCursor
+from psycopg2.errors import UniqueViolation
+from auth import hash_password, verify_password, create_access_token
 import io
 import qrcode
+
 app = FastAPI()
 
 
@@ -15,6 +18,17 @@ class InvitadoIn(BaseModel):
     correo : str | None = None
     es_patrocinador : bool = False
     evento_fk : int
+
+class RegistroIn(BaseModel):
+    usuario: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+    password: Annotated[str, StringConstraints(min_length=8, max_length=72)]
+
+
+class LoginIn(BaseModel):
+    usuario: str
+    password: str
+
+
 
 @app.get("/health")
 async def salud():
@@ -117,6 +131,58 @@ def invitado_qr(invitado_id:int):
 
         return Response(content=buffer.getvalue(), media_type="image/png")
     
+    finally:
+        if conn:
+            conn.close()
+
+
+
+@app.post("/registro")
+def registro_perfil(data: RegistroIn):
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        valores = (data.usuario, hash_password(data.password))
+        cursor.execute("""
+                        INSERT INTO perfiles (usuario, password_hash)
+                        VALUES(%s, %s)
+                        RETURNING id, usuario;
+                        """, (valores))
+        fila = cursor.fetchone()
+        conn.commit()
+
+        return fila
+
+    except UniqueViolation:
+        conn.rollback()
+        raise HTTPException(status_code=409, detail="El usuario ya existe")
+
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.post("/login")
+def logIn(data:LoginIn):
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cursor.execute("""
+                        SELECT id, usuario, password_hash
+                        FROM perfiles
+                        WHERE usuario = %s
+                        """, (data.usuario,))
+        fila = cursor.fetchone()
+        if fila is None or not verify_password(data.password, fila['password_hash']):
+            raise HTTPException(status_code=401, detail="Usuario o Contrasena Incorrectos")
+
+        respuesta = {"access_token" : create_access_token(fila['id'], fila['usuario']), "token_type":"bearer"}
+
+        return respuesta
+
     finally:
         if conn:
             conn.close()
