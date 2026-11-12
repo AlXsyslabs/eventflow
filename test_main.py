@@ -115,3 +115,9 @@ def test_verificar_qr(evento_prueba):
     assert qr.status_code == 200
     assert qr.content.startswith(b"\x89PNG\r\n\x1a\n")
     assert qr.headers["content-type"] == "image/png"
+
+def test_invitado_que_no_existe():
+    respuesta = client.get("/invitados/999999/qr")
+
+    assert respuesta.status_code == 404
+    assert respuesta.json()['detail'] == "El invitado no existe"
