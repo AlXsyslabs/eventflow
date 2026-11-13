@@ -221,3 +221,58 @@ def test_listar_invitado_sin_token():
     
     assert respuesta.status_code == 401
     assert respuesta.json()['detail'] == "Token requerido"
+
+@pytest.fixture
+def evento_ajeno():
+    usuario = f"perfil_{uuid.uuid4().hex[:8]}"
+    password = f"clave_{uuid.uuid4().hex[:8]}"
+
+    respuesta = client.post("/registro", json={"usuario": usuario, "password": password})
+    perfil_id = respuesta.json()["id"]
+
+    conn = None
+    try:    
+        conn = get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        valores_evento = ("Nombre_falso", "ubicacion_falsa", perfil_id)
+        cursor.execute("""
+                        INSERT INTO eventos (nombre_evento, ubicacion_evento, fecha_hora, perfil_id)
+                        VALUES(%s, %s, NOW(), %s)
+                        RETURNING id 
+                        """, (valores_evento))
+        evento_id = cursor.fetchone()['id']
+        conn.commit()
+        
+    finally:
+        if conn:
+            conn.close()
+
+    yield evento_id
+
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+                    DELETE FROM invitados
+                    WHERE evento_fk = %s;
+                    
+                    DELETE FROM eventos
+                    WHERE id = %s;
+                    
+                    DELETE FROM perfiles
+                    WHERE id = %s;
+                    """, (evento_id, evento_id, perfil_id))
+        
+        conn.commit()
+        cursor.close()
+            
+    finally:
+        if conn:
+            conn.close()
+
+def test_listar_invitados_evento_ajeno(evento_ajeno, headers_auth):
+    respuesta = client.get(f"/invitados?evento_id={evento_ajeno}", headers=headers_auth)
+
+    assert respuesta.status_code == 403
+    assert respuesta.json()['detail'] == "No tienes permiso sobre este evento"

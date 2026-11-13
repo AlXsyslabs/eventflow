@@ -58,19 +58,21 @@ def agregar_invitado(data: InvitadoIn):
             conn.close()
 
 
-@app.get("/invitados", dependencies=[Depends(get_current_user)])
-def listar_invitados(evento_id: int):
+@app.get("/invitados")
+def listar_invitados(evento_id: int, perfil: dict = Depends(get_current_user)):
     conn = None
     try:
         conn = get_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("""
-                        SELECT id FROM eventos
+                        SELECT id, perfil_id FROM eventos
                         WHERE id = %s
                         """, (evento_id, ))
         fila = cursor.fetchone()   
         if fila is None:
-            raise HTTPException(status_code=404, detail="El evento no existe")    
+            raise HTTPException(status_code=404, detail="El evento no existe")
+        elif fila['perfil_id'] != perfil['perfil_id']:
+            raise HTTPException(status_code=403, detail="No tienes permiso sobre este evento")   
         
         cursor.execute("""
                         SELECT id, nombre, puesto, telefono, correo, 
@@ -186,3 +188,5 @@ def logIn(data:LoginIn):
     finally:
         if conn:
             conn.close()
+
+            
