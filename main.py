@@ -1,10 +1,10 @@
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, Depends
 from typing import Annotated
 from pydantic import BaseModel, StringConstraints
 from db import get_connection
 from psycopg2.extras import RealDictCursor
 from psycopg2.errors import UniqueViolation
-from auth import hash_password, verify_password, create_access_token
+from auth import hash_password, verify_password, create_access_token, get_current_user
 import io
 import qrcode
 
@@ -58,7 +58,7 @@ def agregar_invitado(data: InvitadoIn):
             conn.close()
 
 
-@app.get("/invitados")
+@app.get("/invitados", dependencies=[Depends(get_current_user)])
 def listar_invitados(evento_id: int):
     conn = None
     try:

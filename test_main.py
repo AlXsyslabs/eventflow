@@ -88,21 +88,21 @@ def test_agregar_invitado_nombre_validacion():
     assert respuesta.json()['detail'][0]['loc'] == ["body", "nombre"]
     assert respuesta.json()['detail'][0]['type'] == "string_too_short"
 
-def test_evento_sin_invitados_devuelve_lista_vacia(evento_prueba):
-    respuesta = client.get(f"/invitados?evento_id={evento_prueba}")
+def test_evento_sin_invitados_devuelve_lista_vacia(evento_prueba, headers_auth):
+    respuesta = client.get(f"/invitados?evento_id={evento_prueba}", headers=headers_auth)
 
     assert respuesta.status_code == 200
     assert respuesta.json() == []
 
-def test_evento_inexistente_error():
-    respuesta = client.get("/invitados?evento_id=999999999")
+def test_evento_inexistente_error(headers_auth):
+    respuesta = client.get("/invitados?evento_id=999999999", headers=headers_auth)
 
     assert respuesta.status_code == 404
     assert respuesta.json()['detail'] == "El evento no existe"
 
-def test_listar_invitados_con_un_invitado(evento_prueba):
+def test_listar_invitados_con_un_invitado(evento_prueba, headers_auth):
     client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":evento_prueba})
-    lista_invitado_evento = client.get(f"/invitados?evento_id={evento_prueba}")
+    lista_invitado_evento = client.get(f"/invitados?evento_id={evento_prueba}", headers=headers_auth)
 
     assert lista_invitado_evento.status_code == 200
     assert len(lista_invitado_evento.json()) == 1
@@ -208,3 +208,16 @@ def test_registro_usuario_nuevo():
         finally:
             if conn:
                 conn.close()
+
+@pytest.fixture
+def headers_auth(perfil_prueba):
+    respuesta = client.post("/login", json={"usuario":perfil_prueba['usuario'], "password":perfil_prueba['password']})
+    token  = respuesta.json()['access_token']
+
+    return {"Authorization": f"Bearer {token}"}
+
+def test_listar_invitado_sin_token():
+    respuesta = client.get("/invitados?evento_id=1")
+    
+    assert respuesta.status_code == 401
+    assert respuesta.json()['detail'] == "Token requerido"
