@@ -276,3 +276,16 @@ def test_listar_invitados_evento_ajeno(evento_ajeno, headers_auth):
 
     assert respuesta.status_code == 403
     assert respuesta.json()['detail'] == "No tienes permiso sobre este evento"
+
+def test_qr_sin_token():
+    respuesta = client.get("/invitados/1/qr")
+
+    assert respuesta.status_code == 401
+    assert respuesta.json()['detail'] == "Token requerido"
+
+def test_qr_evento_ajeno(evento_ajeno, headers_auth):
+    invitado = client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":evento_ajeno})
+    respuesta = client.get(f"/invitados/{invitado.json()['id']}/qr", headers=headers_auth)
+
+    assert respuesta.status_code == 403
+    assert respuesta.json()['detail'] == "No tienes permiso sobre este evento"
