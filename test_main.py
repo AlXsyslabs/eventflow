@@ -14,8 +14,8 @@ def test_health():
     assert respuesta.status_code == 200
     assert respuesta.json() == {"status": "ok"}
 
-def test_agregar_invitado_error():
-    respuesta = client.post("/invitados", json={"telefono": "6677865", "evento_fk":9})
+def test_agregar_invitado_error(headers_auth):
+    respuesta = client.post("/invitados", json={"telefono": "6677865", "evento_fk":9}, headers=headers_auth)
 
     assert respuesta.status_code == 422
     assert respuesta.json()["detail"][0]["loc"] == ["body", "nombre"]
@@ -60,15 +60,15 @@ def evento_prueba(perfil_prueba):
             conn.close()
 
 
-def test_agregar_invitado_ok(evento_prueba):
-    respuesta = client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":evento_prueba})
+def test_agregar_invitado_ok(evento_prueba, headers_auth):
+    respuesta = client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":evento_prueba}, headers=headers_auth)
 
     assert respuesta.status_code == 200
     assert "id" in respuesta.json()
 
 
-def test_ingreso_solo_una_vez(evento_prueba):
-    creado = client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":evento_prueba})
+def test_ingreso_solo_una_vez(evento_prueba, headers_auth):
+    creado = client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":evento_prueba}, headers=headers_auth)
 
     assert creado.status_code == 200
     assert "id" in creado.json()
@@ -82,8 +82,8 @@ def test_ingreso_solo_una_vez(evento_prueba):
     assert segunda.status_code == 409
     assert segunda.json()["detail"] == "Ya ingresó o no se registró"
 
-def test_agregar_invitado_nombre_validacion():
-    respuesta = client.post("/invitados", json={"nombre":"   ", "telefono":"6675645454", "evento_fk":2})
+def test_agregar_invitado_nombre_validacion(headers_auth):
+    respuesta = client.post("/invitados", json={"nombre":"   ", "telefono":"6675645454", "evento_fk":2}, headers=headers_auth)
     assert respuesta.status_code == 422
     assert respuesta.json()['detail'][0]['loc'] == ["body", "nombre"]
     assert respuesta.json()['detail'][0]['type'] == "string_too_short"
@@ -101,7 +101,7 @@ def test_evento_inexistente_error(headers_auth):
     assert respuesta.json()['detail'] == "El evento no existe"
 
 def test_listar_invitados_con_un_invitado(evento_prueba, headers_auth):
-    client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":evento_prueba})
+    client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":evento_prueba}, headers=headers_auth)
     lista_invitado_evento = client.get(f"/invitados?evento_id={evento_prueba}", headers=headers_auth)
 
     assert lista_invitado_evento.status_code == 200
@@ -109,7 +109,7 @@ def test_listar_invitados_con_un_invitado(evento_prueba, headers_auth):
     assert lista_invitado_evento.json()[0]['nombre'] == "gina"
 
 def test_verificar_qr(evento_prueba, headers_auth):
-    respuesta = client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":evento_prueba})
+    respuesta = client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":evento_prueba}, headers=headers_auth)
     invitado_id = respuesta.json()['id']
     qr = client.get(f"/invitados/{invitado_id}/qr", headers=headers_auth)
 
@@ -284,8 +284,36 @@ def test_qr_sin_token():
     assert respuesta.json()['detail'] == "Token requerido"
 
 def test_qr_evento_ajeno(evento_ajeno, headers_auth):
-    invitado = client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":evento_ajeno})
-    respuesta = client.get(f"/invitados/{invitado.json()['id']}/qr", headers=headers_auth)
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+                        INSERT INTO invitados (nombre, telefono, evento_fk)
+                        VALUES(%s, %s, %s)
+                        RETURNING id
+                        """, ("gina", "6675665643", evento_ajeno))
+        invitado_id = cursor.fetchone()['id']
+        conn.commit()
+        cursor.close()
+    finally:
+        if conn:
+            conn.close()
+
+    respuesta = client.get(f"/invitados/{invitado_id}/qr", headers=headers_auth)
 
     assert respuesta.status_code == 403
     assert respuesta.json()['detail'] == "No tienes permiso sobre este evento"
+
+def test_crear_invitado_sin_token():
+    respuesta = client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":1})
+
+    assert respuesta.status_code == 401
+    assert respuesta.json()['detail'] == "Token requerido"
+
+def test_crear_invitado_evento_ajeno(evento_ajeno, headers_auth):
+    respuesta = client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":evento_ajeno}, headers=headers_auth)
+
+    assert respuesta.status_code == 403
+    assert respuesta.json()['detail'] == "No tienes permiso sobre este evento"
+

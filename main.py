@@ -36,13 +36,23 @@ async def salud():
 
 
 @app.post("/invitados")
-def agregar_invitado(data: InvitadoIn):
+def agregar_invitado(data: InvitadoIn, perfil:dict=Depends(get_current_user)):
     conn = None
     try:
         conn = get_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         valores = (data.nombre, data.puesto, data.telefono, data.correo, data.es_patrocinador, data.evento_fk)
-        cursor.execute(""" 
+        cursor.execute("""
+                    SELECT id, perfil_id FROM eventos WHERE id = %s
+                        """, (data.evento_fk,))
+
+        evento = cursor.fetchone()
+        if evento is None:
+            raise HTTPException(status_code=404, detail="El evento no existe")
+        elif evento['perfil_id'] != perfil['perfil_id']:
+            raise HTTPException(status_code=403, detail="No tienes permiso sobre este evento")
+        
+        cursor.execute("""
                     INSERT INTO invitados (nombre, puesto, telefono, correo, 
                     es_patrocinador, evento_fk) VALUES (%s, %s, %s, %s, %s, %s)
                     RETURNING id 
