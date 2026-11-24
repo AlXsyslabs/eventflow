@@ -108,17 +108,17 @@ def test_listar_invitados_con_un_invitado(evento_prueba, headers_auth):
     assert len(lista_invitado_evento.json()) == 1
     assert lista_invitado_evento.json()[0]['nombre'] == "gina"
 
-def test_verificar_qr(evento_prueba):
+def test_verificar_qr(evento_prueba, headers_auth):
     respuesta = client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":evento_prueba})
     invitado_id = respuesta.json()['id']
-    qr = client.get(f"/invitados/{invitado_id}/qr")
+    qr = client.get(f"/invitados/{invitado_id}/qr", headers=headers_auth)
 
     assert qr.status_code == 200
     assert qr.content.startswith(b"\x89PNG\r\n\x1a\n")
     assert qr.headers["content-type"] == "image/png"
 
-def test_invitado_que_no_existe():
-    respuesta = client.get("/invitados/999999/qr")
+def test_invitado_que_no_existe(headers_auth):
+    respuesta = client.get("/invitados/999999/qr", headers=headers_auth)
 
     assert respuesta.status_code == 404
     assert respuesta.json()['detail'] == "El invitado no existe"

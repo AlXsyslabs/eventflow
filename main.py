@@ -114,18 +114,22 @@ def actualizar_ingreso_invitado(invitado_id:int):
 
 
 @app.get("/invitados/{invitado_id}/qr")
-def invitado_qr(invitado_id:int):
+def invitado_qr(invitado_id:int, perfil: dict = Depends(get_current_user)):
     conn = None
     try:
         conn = get_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("""
-                        SELECT id FROM invitados
-                        WHERE id = %s
+                        SELECT i.id, e.perfil_id 
+                        FROM invitados i
+                        JOIN eventos e ON i.evento_fk = e.id
+                        WHERE i.id = %s
                         """, (invitado_id,))
         fila = cursor.fetchone()
         if fila is None:
             raise HTTPException(status_code=404, detail="El invitado no existe")
+        elif fila['perfil_id'] != perfil['perfil_id']:
+            raise HTTPException(status_code=403, detail="No tienes permiso sobre este evento")
         
         image = qrcode.make(str(invitado_id))#crea un qr con el id del invitado
         buffer = io.BytesIO()
@@ -189,4 +193,3 @@ def logIn(data:LoginIn):
         if conn:
             conn.close()
 
-            
