@@ -74,11 +74,11 @@ def test_ingreso_solo_una_vez(evento_prueba, headers_auth):
     assert "id" in creado.json()
     invitado_id = creado.json()['id']
 
-    primera = client.patch(f"/invitados/{invitado_id}/ingreso")
+    primera = client.patch(f"/invitados/{invitado_id}/ingreso", headers=headers_auth)
     assert primera.status_code == 200
     assert primera.json()['id'] == invitado_id
 
-    segunda = client.patch(f"/invitados/{invitado_id}/ingreso")
+    segunda = client.patch(f"/invitados/{invitado_id}/ingreso", headers=headers_auth)
     assert segunda.status_code == 409
     assert segunda.json()["detail"] == "Ya ingresó o no se registró"
 
@@ -317,3 +317,30 @@ def test_crear_invitado_evento_ajeno(evento_ajeno, headers_auth):
     assert respuesta.status_code == 403
     assert respuesta.json()['detail'] == "No tienes permiso sobre este evento"
 
+def test_ingreso_sin_token():
+    respuesta = client.patch("/invitados/1/ingreso")
+
+    assert respuesta.status_code == 401
+    assert respuesta.json()['detail'] == "Token requerido"
+
+def test_ingreso_evento_ajeno(evento_ajeno, headers_auth):
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+                        INSERT INTO invitados (nombre, telefono, evento_fk)
+                        VALUES(%s, %s, %s)
+                        RETURNING id
+                        """, ("gina", "6675665643", evento_ajeno))
+        invitado_id = cursor.fetchone()['id']
+        conn.commit()
+        cursor.close()
+    finally:
+        if conn:
+            conn.close()
+
+    respuesta = client.patch(f"/invitados/{invitado_id}/ingreso", headers=headers_auth)
+
+    assert respuesta.status_code == 403
+    assert respuesta.json()['detail'] == "No tienes permiso sobre este evento"

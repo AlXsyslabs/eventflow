@@ -99,11 +99,23 @@ def listar_invitados(evento_id: int, perfil: dict = Depends(get_current_user)):
 
 
 @app.patch("/invitados/{invitado_id}/ingreso")
-def actualizar_ingreso_invitado(invitado_id:int):
+def actualizar_ingreso_invitado(invitado_id:int, perfil: dict=Depends(get_current_user)):
     conn = None
     try:
         conn = get_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+                        SELECT i.id, e.perfil_id FROM invitados i
+                        JOIN eventos e 
+                        ON i.evento_fk = e.id WHERE i.id = %s;
+                        """, (invitado_id, ))
+        invitado = cursor.fetchone()
+
+        if invitado is None:
+            raise HTTPException(status_code=404, detail="El invitado no existe")
+        elif invitado['perfil_id'] != perfil['perfil_id']:
+            raise HTTPException(status_code=403, detail="No tienes permiso sobre este evento") 
+        
         cursor.execute("""
                         UPDATE invitados
                         SET ingreso = NOW()
