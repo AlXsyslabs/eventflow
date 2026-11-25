@@ -344,3 +344,16 @@ def test_ingreso_evento_ajeno(evento_ajeno, headers_auth):
 
     assert respuesta.status_code == 403
     assert respuesta.json()['detail'] == "No tienes permiso sobre este evento"
+
+def test_crear_invitado_evento_inexistente(headers_auth):
+    respuesta = client.post("/invitados", json={"nombre":"gina", "telefono":"6675665643", "evento_fk":999999}, headers=headers_auth)
+
+    assert respuesta.status_code == 404
+    assert respuesta.json()['detail'] == "El evento no existe"
+
+
+
+
+
+
+
