@@ -10,7 +10,8 @@ def get_connection():
         user=os.getenv("DB_USER"),
         port=os.getenv("DB_PORT"),
         password=os.getenv("DB_PASSWORD"),
-        database=os.getenv("DB_NAME"))
+        database=os.getenv("DB_NAME"),
+        sslmode=os.getenv("DB_SSLMODE", "prefer"))
 
 
 if __name__ == "__main__":
