@@ -2,6 +2,12 @@
 
 REST API to manage event guests: register organizers, create events' guest lists, generate a QR code per guest and mark their entry once.
 
+## Live demo
+
+Interactive API docs: https://TU-URL.onrender.com/docs
+
+The API runs on Render's free plan and the database on Neon. After 15 minutes without traffic the service sleeps, so the first request can take about a minute to respond.
+
 ## Features
 
 - Current: `GET /health` returns `{"status": "ok"}`.
