@@ -7,6 +7,13 @@ from psycopg2.errors import UniqueViolation
 from auth import hash_password, verify_password, create_access_token, get_current_user
 import io
 import qrcode
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -204,7 +211,14 @@ def logIn(data:LoginIn):
                         WHERE usuario = %s
                         """, (data.usuario,))
         fila = cursor.fetchone()
-        if fila is None or not verify_password(data.password, fila['password_hash']):
+
+
+        if fila is None:
+            logger.warning("Usuario inexistente: usuario=%s", data.usuario)
+            raise HTTPException(status_code=401, detail="Usuario o Contrasena Incorrectos")
+        
+        elif not verify_password(data.password, fila['password_hash']):
+            logger.warning("Password incorrecta: usuario=%s", data.usuario)
             raise HTTPException(status_code=401, detail="Usuario o Contrasena Incorrectos")
 
         respuesta = {"access_token" : create_access_token(fila['id'], fila['usuario']), "token_type":"bearer"}
