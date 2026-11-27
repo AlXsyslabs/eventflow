@@ -4,6 +4,7 @@ from main import app
 import pytest
 import uuid
 from db import get_connection
+import logging
 
 client = TestClient(app)
 
@@ -351,6 +352,12 @@ def test_crear_invitado_evento_inexistente(headers_auth):
     assert respuesta.status_code == 404
     assert respuesta.json()['detail'] == "El evento no existe"
 
+def test_login_usuario_inexistente_registra_warning(caplog):
+    with caplog.at_level(logging.WARNING):
+        respuesta = client.post("/login", json={"usuario": "nadie_existe_123", "password": "test"})
+
+    assert respuesta.status_code == 401
+    assert "Usuario inexistente" in caplog.text
 
 
 
